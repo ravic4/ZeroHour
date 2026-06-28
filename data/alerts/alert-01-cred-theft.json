@@ -1,0 +1,155 @@
+{
+  "alert": {
+    "id": "alert-01",
+    "source": "edr",
+    "severity": 9,
+    "timestamp": "2026-06-28T02:14:33Z",
+    "host": "CORP-WS-114",
+    "user": "jsmith",
+    "raw": "CRITICAL: Process injection into lsass.exe detected. Credential dumping tool signature (mimikatz) identified. Subsequent PsExec lateral movement to CORP-SRV-DC01 and CORP-SRV-FS02. Active C2 beacon to 185.220.101.47:443.",
+    "telemetry": [
+      {
+        "time": "02:11:22Z",
+        "event": "Suspicious process spawn",
+        "detail": "cmd.exe (PID 3201) launched powershell.exe -encodedcommand [250-char base64 payload]"
+      },
+      {
+        "time": "02:12:01Z",
+        "event": "LSASS memory access",
+        "detail": "Unknown process (PID 4821, path: C:\\Users\\jsmith\\AppData\\Local\\Temp\\svchost32.exe) opened PROCESS_VM_READ handle to lsass.exe (PID 652)"
+      },
+      {
+        "time": "02:12:08Z",
+        "event": "Credential dump detected",
+        "detail": "EDR telemetry: sekurlsa::logonpasswords pattern matched; 3 NTLM hashes and 1 Kerberos TGT extracted from memory"
+      },
+      {
+        "time": "02:13:45Z",
+        "event": "Lateral movement via PsExec",
+        "detail": "PsExec.exe (SHA256: a3f2c9e...b99d) copied to \\\\CORP-SRV-DC01\\admin$; remote service PSEXESVC created and started"
+      },
+      {
+        "time": "02:14:02Z",
+        "event": "Lateral movement via PsExec",
+        "detail": "PsExec.exe copied to \\\\CORP-SRV-FS02\\admin$; remote service PSEXESVC created and started"
+      },
+      {
+        "time": "02:14:33Z",
+        "event": "C2 beacon established",
+        "detail": "HTTPS POST to 185.220.101.47:443 every 60s; jitter 10%; TLS fingerprint matches Cobalt Strike default malleable C2 profile"
+      }
+    ]
+  },
+  "cachedVerdict": {
+    "verdict": "true_positive",
+    "confidence": 0.97,
+    "reasoning": "Multiple high-confidence indicators confirm an active credential theft and lateral movement attack in progress. LSASS memory access by an unsigned binary dropped to a temp directory is a textbook Mimikatz execution pattern — no legitimate software writes to LSASS from AppData\\Local\\Temp. The extracted NTLM hashes were immediately leveraged via PsExec to pivot to two critical servers (domain controller and file server). The Cobalt Strike C2 beacon with a default malleable profile on a known malicious IP confirms a human operator is actively controlling the session. This is not a false positive — it is an active intrusion requiring immediate containment.",
+    "timeline": [
+      {
+        "time": "02:11:22Z",
+        "event": "Encoded PowerShell execution",
+        "significance": "Base64 encoding obscures payload — evasion tactic indicating deliberate obfuscation"
+      },
+      {
+        "time": "02:12:01Z",
+        "event": "LSASS memory access from temp-dir binary",
+        "significance": "Critical: active credential theft; no legitimate software has this behavior pattern"
+      },
+      {
+        "time": "02:12:08Z",
+        "event": "3 NTLM hashes + 1 Kerberos TGT extracted",
+        "significance": "Attacker now holds cryptographic credentials valid without knowing plaintext passwords"
+      },
+      {
+        "time": "02:13:45Z",
+        "event": "PsExec lateral movement to domain controller",
+        "significance": "Domain controller compromised — maximum blast radius; all domain accounts at risk"
+      },
+      {
+        "time": "02:14:02Z",
+        "event": "PsExec lateral movement to file server",
+        "significance": "Data exfiltration risk from FS02 — likely target for ransomware staging"
+      },
+      {
+        "time": "02:14:33Z",
+        "event": "Cobalt Strike C2 beacon active",
+        "significance": "Human operator in the loop — dwell time will accelerate without immediate response"
+      }
+    ],
+    "mitre": [
+      {
+        "tactic": "Credential Access",
+        "technique": "LSASS Memory",
+        "id": "T1003.001"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Obfuscated Files or Information",
+        "id": "T1027"
+      },
+      {
+        "tactic": "Lateral Movement",
+        "technique": "SMB/Windows Admin Shares",
+        "id": "T1021.002"
+      },
+      {
+        "tactic": "Command and Control",
+        "technique": "Web Protocols",
+        "id": "T1071.001"
+      }
+    ],
+    "evidence": [
+      {
+        "signal": "LSASS memory access by unsigned temp-dir binary (svchost32.exe)",
+        "why_it_matters": "Standard Mimikatz execution pattern — LSASS holds all active domain credentials including Kerberos tickets"
+      },
+      {
+        "signal": "3 NTLM hashes + 1 Kerberos TGT extracted",
+        "why_it_matters": "Attacker can perform pass-the-hash and pass-the-ticket attacks against any resource these accounts can access"
+      },
+      {
+        "signal": "PsExec to CORP-SRV-DC01 (domain controller)",
+        "why_it_matters": "Domain controller access = keys to the kingdom; attacker can create accounts, change group policies, and achieve full domain dominance"
+      },
+      {
+        "signal": "Cobalt Strike C2 beacon to 185.220.101.47 (known malicious IP)",
+        "why_it_matters": "Active human operator controlling the session; threat will escalate rapidly without containment"
+      }
+    ],
+    "containment": [
+      {
+        "action": "Isolate host from network immediately",
+        "target": "CORP-WS-114",
+        "reversible": true,
+        "rationale": "Cut C2 channel and prevent further lateral movement from patient zero while preserving for forensics"
+      },
+      {
+        "action": "Force password reset and revoke all active sessions",
+        "target": "jsmith account",
+        "reversible": true,
+        "rationale": "Attacker holds jsmith NTLM hash; password reset invalidates the hash without needing plaintext recovery"
+      },
+      {
+        "action": "Block at perimeter firewall (all ports)",
+        "target": "185.220.101.47 — known Cobalt Strike C2",
+        "reversible": true,
+        "rationale": "Sever operator control channel across all potentially infected hosts on the network"
+      },
+      {
+        "action": "Isolate and audit for persistence",
+        "target": "CORP-SRV-DC01 and CORP-SRV-FS02",
+        "reversible": false,
+        "rationale": "PsExec may have deployed persistence mechanisms; audit before any remediation destroys forensic evidence"
+      },
+      {
+        "action": "Preserve full disk image before any remediation",
+        "target": "CORP-WS-114",
+        "reversible": false,
+        "rationale": "Chain-of-custody forensic image needed to determine initial access vector and legal/regulatory obligations"
+      }
+    ],
+    "summary": "Active intrusion: Mimikatz credential dump from CORP-WS-114 with PsExec lateral movement to domain controller and file server — Cobalt Strike C2 operator live. Isolate WS-114, reset jsmith, block C2 IP now.",
+    "analyst_baseline_minutes": 47,
+    "agent_seconds": 3.2
+  }
+}

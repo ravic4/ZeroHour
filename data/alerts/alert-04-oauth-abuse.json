@@ -1,0 +1,170 @@
+{
+  "alert": {
+    "id": "alert-04",
+    "source": "email",
+    "severity": 8,
+    "timestamp": "2026-06-28T01:39:01Z",
+    "host": "microsoft-graph-api",
+    "user": "c.patel",
+    "raw": "HIGH: Third-party OAuth app 'DataSyncPro' granted Mail.ReadWrite and Files.ReadWrite.All delegated permissions by c.patel. Subsequent bulk enumeration of 1,247 directory users and download of 14,200 email messages and 847 files via Microsoft Graph API. Data exfiltrated to external domain datasyncpro-backup.com.",
+    "telemetry": [
+      {
+        "time": "01:33:17Z",
+        "event": "OAuth app consent granted",
+        "detail": "c.patel granted 'DataSyncPro' (client_id: f82a3c9d-4411-4b2e-a6f1-8c3e7d2a9b0f) delegated permissions: Mail.ReadWrite, Files.ReadWrite.All, Contacts.Read, User.ReadBasic.All. Consent URI: login.microsoftonline.com (legitimate Azure AD endpoint)."
+      },
+      {
+        "time": "01:33:19Z",
+        "event": "Access token issued by Azure AD",
+        "detail": "Bearer token issued, expiry: 1 hour. Granted scopes: Mail.ReadWrite Files.ReadWrite.All Contacts.Read User.ReadBasic.All. Refresh token also issued (90-day expiry)."
+      },
+      {
+        "time": "01:33:45Z",
+        "event": "Full directory enumeration",
+        "detail": "Graph API GET /v1.0/users?$select=id,displayName,mail,jobTitle&$top=999 — returned 1,247 users (complete tenant directory). Second page fetched for remainder."
+      },
+      {
+        "time": "01:34:02Z",
+        "event": "Cross-user mailbox access",
+        "detail": "Graph API GET /v1.0/users/{id}/messages called for 15 different user IDs — NOT c.patel. Delegated token scope should restrict access to /me/ paths only. Possible over-privileged app registration."
+      },
+      {
+        "time": "01:34:55Z",
+        "event": "Bulk email download",
+        "detail": "14,200 messages downloaded via GET /v1.0/me/messages?$top=100 (paginated, 142 pages). Attachments included. Total size: 2.3 GB. Includes messages from Finance, Legal, and HR threads."
+      },
+      {
+        "time": "01:37:22Z",
+        "event": "OneDrive bulk file download",
+        "detail": "847 files recursively downloaded via /v1.0/me/drive/root/children. Directories accessed: /finance/, /legal/, /hr/, /exec-briefings/. Total: 4.1 GB."
+      },
+      {
+        "time": "01:39:01Z",
+        "event": "Data exfiltration to external server",
+        "detail": "HTTPS POST requests to api.datasyncpro-backup.com (IP: 91.195.240.117, AS: Frantech Solutions — known bulletproof hosting). Domain registered 3 days ago. Legitimate DataSyncPro.com resolves to 104.21.55.89 (Cloudflare). Different domains, different operators."
+      }
+    ]
+  },
+  "cachedVerdict": {
+    "verdict": "true_positive",
+    "confidence": 0.95,
+    "reasoning": "This is a confirmed illicit OAuth consent grant attack. The attacker registered a malicious OAuth application named 'DataSyncPro' impersonating a legitimate backup tool, deceived c.patel into granting excessive permissions, then systematically exfiltrated email, files, and contacts via the Microsoft Graph API. The exfiltration destination is definitive: api.datasyncpro-backup.com is a typosquatted domain registered 3 days ago hosted on bulletproof infrastructure (Frantech Solutions), resolving to a completely different IP than the legitimate DataSyncPro.com service. Additionally, the app accessed mailboxes of 15 other users beyond c.patel — which delegated scope should not permit — indicating an over-privileged app registration likely designed specifically for tenant-wide data harvest. 6.4 GB of email and files including finance, legal, HR, and executive briefing directories have been exfiltrated. A 90-day refresh token remains active unless revoked.",
+    "timeline": [
+      {
+        "time": "01:33:17Z",
+        "event": "Malicious OAuth app consent granted by c.patel",
+        "significance": "Entry point: c.patel deceived into authorizing attacker's app via OAuth phishing link"
+      },
+      {
+        "time": "01:33:19Z",
+        "event": "Azure AD issues bearer token + 90-day refresh token",
+        "significance": "Legitimate tokens issued to malicious app — attacker now inside the trust boundary with persistent access"
+      },
+      {
+        "time": "01:33:45Z",
+        "event": "Complete tenant directory enumeration (1,247 users)",
+        "significance": "Reconnaissance sweep — attacker mapping the org for targeting high-value accounts"
+      },
+      {
+        "time": "01:34:02Z",
+        "event": "Cross-user mailbox access beyond delegated scope",
+        "significance": "App accessing other users' mail indicates over-privileged registration or tenant misconfiguration"
+      },
+      {
+        "time": "01:34:55Z",
+        "event": "14,200 emails downloaded (2.3 GB)",
+        "significance": "Finance, legal, and HR email content — high-value intelligence and potential compliance breach"
+      },
+      {
+        "time": "01:37:22Z",
+        "event": "847 files from finance/legal/hr/exec-briefings (4.1 GB)",
+        "significance": "Highest-sensitivity directories targeted specifically — attacker knew exactly what to steal"
+      },
+      {
+        "time": "01:39:01Z",
+        "event": "6.4 GB sent to typosquatted domain on bulletproof hosting",
+        "significance": "Smoking gun: confirms malicious operator; data now in attacker's hands"
+      }
+    ],
+    "mitre": [
+      {
+        "tactic": "Initial Access",
+        "technique": "Phishing — Spearphishing Link",
+        "id": "T1566.002"
+      },
+      {
+        "tactic": "Credential Access",
+        "technique": "Steal Application Access Token",
+        "id": "T1528"
+      },
+      {
+        "tactic": "Discovery",
+        "technique": "Account Discovery — Cloud Account",
+        "id": "T1087.004"
+      },
+      {
+        "tactic": "Collection",
+        "technique": "Email Collection",
+        "id": "T1114"
+      },
+      {
+        "tactic": "Exfiltration",
+        "technique": "Exfiltration to Cloud Storage",
+        "id": "T1567.002"
+      }
+    ],
+    "evidence": [
+      {
+        "signal": "Exfil to datasyncpro-backup.com — typosquatted domain, 3 days old, bulletproof hosting",
+        "why_it_matters": "Definitively distinguishes this from the legitimate DataSyncPro service; no legitimate app would route to Frantech Solutions infrastructure"
+      },
+      {
+        "signal": "Cross-user mailbox access for 15 accounts beyond c.patel",
+        "why_it_matters": "The attacker harvested credentials or tokens beyond the consenting user — potential tenant-wide compromise vector"
+      },
+      {
+        "signal": "Tenant-wide directory enumeration (1,247 users)",
+        "why_it_matters": "Systematic reconnaissance indicates a sophisticated attacker building a target map, not a misconfigured sync tool"
+      },
+      {
+        "signal": "Finance, legal, HR, exec-briefings directories specifically targeted",
+        "why_it_matters": "Attacker exhibited prior knowledge of directory structure — suggests reconnaissance or insider-assisted targeting"
+      }
+    ],
+    "containment": [
+      {
+        "action": "Revoke all tokens for the DataSyncPro app registration immediately",
+        "target": "Azure AD Enterprise Applications — client_id: f82a3c9d-4411-4b2e-a6f1-8c3e7d2a9b0f",
+        "reversible": true,
+        "rationale": "Terminates bearer token AND the 90-day refresh token; token revocation is near-instant in Azure AD"
+      },
+      {
+        "action": "Block at email gateway, web proxy, and DNS",
+        "target": "datasyncpro-backup.com and IP 91.195.240.117",
+        "reversible": true,
+        "rationale": "Prevent any in-flight exfiltration from completing and block future callback attempts from the 90-day refresh token"
+      },
+      {
+        "action": "Audit all tenant users for DataSyncPro consent grants",
+        "target": "All M365 users — check Azure AD Enterprise Applications and OAuth consent logs",
+        "reversible": true,
+        "rationale": "Illicit consent attacks frequently target multiple users; revoke consent for all affected accounts"
+      },
+      {
+        "action": "Notify Legal, DPO, and Privacy team",
+        "target": "Legal + Data Protection Officer",
+        "reversible": false,
+        "rationale": "6.4 GB including finance/legal/HR/executive data likely triggers GDPR Article 33 (72-hour notification) and CCPA breach disclosure obligations"
+      },
+      {
+        "action": "Export and preserve Azure AD unified audit logs",
+        "target": "Microsoft 365 Security & Compliance Center — audit log export",
+        "reversible": false,
+        "rationale": "Default log retention is 90 days; export immediately to preserve forensic record of all Graph API calls made by the malicious app"
+      }
+    ],
+    "summary": "Illicit OAuth consent grant: malicious 'DataSyncPro' app exfiltrated 14,200 emails (2.3 GB) and 847 files (4.1 GB — finance/legal/HR) via Microsoft Graph API to a typosquatted bulletproof domain. Revoke app tokens now. Legal/privacy breach notification likely required.",
+    "analyst_baseline_minutes": 52,
+    "agent_seconds": 3.8
+  }
+}

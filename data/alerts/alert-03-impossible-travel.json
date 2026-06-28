@@ -1,0 +1,144 @@
+{
+  "alert": {
+    "id": "alert-03",
+    "source": "identity",
+    "severity": 7,
+    "timestamp": "2026-06-28T09:16:33Z",
+    "host": "cloud-idp-prod",
+    "user": "m.johnson",
+    "raw": "HIGH: Impossible travel detected. User m.johnson authenticated from New York, USA at 09:02:14Z then Tokyo, Japan at 09:14:52Z — 12 minutes 38 seconds apart, 10,840 km distance. Both sessions passed MFA. Post-login bulk CRM and SharePoint data access observed.",
+    "telemetry": [
+      {
+        "time": "09:02:14Z",
+        "event": "Authentication success — New York",
+        "detail": "m.johnson login from 73.45.22.190 (Verizon FiOS residential, New York, NY, US). MFA: TOTP app approved. Device: MacBook Pro 14, Chrome 126, fingerprint matches 47 prior logins."
+      },
+      {
+        "time": "09:14:52Z",
+        "event": "Authentication success — Tokyo",
+        "detail": "m.johnson login from 42.112.88.31 (NTT residential, Tokyo, Japan). MFA: TOTP app approved. Device: Windows 11, Edge 126 — NEW DEVICE, not in trusted device registry."
+      },
+      {
+        "time": "09:14:58Z",
+        "event": "Impossible travel velocity calculated",
+        "detail": "Distance: 10,840 km. Elapsed: 762 seconds. Required speed: 51,227 km/h. Minimum commercial flight: ~13.5 hours. Physically impossible without VPN/proxy."
+      },
+      {
+        "time": "09:15:01Z",
+        "event": "Salesforce CRM bulk export",
+        "detail": "GET /services/data/v59.0/query?q=SELECT+Id,Name,Email,Phone,AnnualRevenue+FROM+Account+LIMIT+2500 — 2,441 records returned. Anomalous: m.johnson's baseline max export is 50 records."
+      },
+      {
+        "time": "09:15:44Z",
+        "event": "SharePoint bulk file download",
+        "detail": "15 files downloaded: Q3 Sales Forecast.xlsx, Customer Pipeline 2026.xlsx, Product Roadmap CONFIDENTIAL.pptx, Pricing Strategy H2.xlsx, and 11 others. Total: 847 MB."
+      },
+      {
+        "time": "09:16:33Z",
+        "event": "Both sessions simultaneously active",
+        "detail": "New York session (MacBook/Chrome): active, browsing intranet. Tokyo session (Windows/Edge): still active, no logout. Concurrent sessions from two continents."
+      }
+    ]
+  },
+  "cachedVerdict": {
+    "verdict": "needs_review",
+    "confidence": 0.71,
+    "reasoning": "Impossible travel is confirmed — the physics are irreconcilable. However, automated escalation to confirmed account compromise requires human judgment: (1) Both sessions passed TOTP MFA, which requires either physical access to the authenticator app or a real-time AiTM (adversary-in-the-middle) phishing attack that relays TOTP codes. TOTP relaying is technically feasible and increasingly common. (2) The Tokyo session uses a new, unregistered device fingerprint (Windows/Edge vs. m.johnson's Mac/Chrome baseline) — a VPN exit node would not change the device fingerprint, making VPN the less likely explanation. (3) Bulk CRM export (2,441 records vs. 50-record baseline) and 15 confidential SharePoint files within 60 seconds of login is highly anomalous and matches data theft behavior regardless of whether the account is compromised. The correct action is to contact m.johnson on a verified out-of-band channel immediately, terminate the Tokyo session proactively, and initiate a DLP review of accessed data.",
+    "timeline": [
+      {
+        "time": "09:02:14Z",
+        "event": "Login from New York — trusted device",
+        "significance": "Baseline login from known residential IP; device matches 47 prior logins"
+      },
+      {
+        "time": "09:14:52Z",
+        "event": "Login from Tokyo — new device",
+        "significance": "Red flag: different continent, unregistered device, 12m38s after New York login"
+      },
+      {
+        "time": "09:14:58Z",
+        "event": "Impossible travel alert triggered",
+        "significance": "10,840 km in 762 seconds — physically impossible; one of these sessions is not m.johnson"
+      },
+      {
+        "time": "09:15:01Z",
+        "event": "Salesforce bulk CRM export",
+        "significance": "2,441 records vs. 50-record baseline — 49x anomaly; data theft pattern"
+      },
+      {
+        "time": "09:15:44Z",
+        "event": "Confidential SharePoint files downloaded",
+        "significance": "Forecast, pipeline, roadmap, pricing — the exact files a competitor or insider would target"
+      },
+      {
+        "time": "09:16:33Z",
+        "event": "Concurrent sessions, both still active",
+        "significance": "Simultaneous activity on two continents confirms two separate principals using one account"
+      }
+    ],
+    "mitre": [
+      {
+        "tactic": "Initial Access",
+        "technique": "Valid Accounts",
+        "id": "T1078"
+      },
+      {
+        "tactic": "Credential Access",
+        "technique": "Steal Web Session Cookie",
+        "id": "T1539"
+      },
+      {
+        "tactic": "Collection",
+        "technique": "Data from Cloud Storage Object",
+        "id": "T1530"
+      }
+    ],
+    "evidence": [
+      {
+        "signal": "10,840 km travel in 762 seconds — physically impossible",
+        "why_it_matters": "Definitively proves two separate principals; one session is unauthorized regardless of which"
+      },
+      {
+        "signal": "New, unregistered device fingerprint on Tokyo session (Windows/Edge vs. Mac/Chrome)",
+        "why_it_matters": "VPN would preserve device fingerprint; new device indicates a different physical machine — not same user on VPN"
+      },
+      {
+        "signal": "Salesforce export 49x above m.johnson's baseline (2,441 vs. 50 records)",
+        "why_it_matters": "Bulk export immediately post-login is a data theft pattern regardless of account legitimacy"
+      },
+      {
+        "signal": "Confidential files: Sales Forecast, Pipeline 2026, Product Roadmap, Pricing Strategy",
+        "why_it_matters": "High-value competitive intelligence — precisely what an external attacker or insider threat would target"
+      }
+    ],
+    "containment": [
+      {
+        "action": "Terminate Tokyo session and force MFA re-authentication",
+        "target": "m.johnson — Tokyo session (42.112.88.31)",
+        "reversible": true,
+        "rationale": "Terminate the suspicious session immediately while preserving the likely-legitimate New York session"
+      },
+      {
+        "action": "Contact user via verified out-of-band channel within 15 minutes",
+        "target": "m.johnson — phone or verified Slack DM from IT Security",
+        "reversible": true,
+        "rationale": "Confirm whether Tokyo session is authorized before triggering full account lockout; avoid false positive disruption"
+      },
+      {
+        "action": "DLP review of all data accessed in Tokyo session",
+        "target": "2,441 CRM records + 15 SharePoint files (847 MB)",
+        "reversible": true,
+        "rationale": "Establish blast radius for data exposure notification regardless of final account verdict"
+      },
+      {
+        "action": "Audit all active OAuth tokens and third-party app consents",
+        "target": "m.johnson account — Azure AD enterprise applications",
+        "reversible": true,
+        "rationale": "AiTM attacks frequently harvest OAuth tokens alongside session cookies; check for unauthorized app grants"
+      }
+    ],
+    "summary": "Impossible travel: NY→Tokyo in 12m38s with new device fingerprint; Tokyo session bulk-accessed 2,441 CRM records and 15 confidential files. MFA passed both sessions. Contact user immediately; terminate Tokyo session proactively pending verification.",
+    "analyst_baseline_minutes": 35,
+    "agent_seconds": 2.8
+  }
+}

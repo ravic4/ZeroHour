@@ -1,0 +1,116 @@
+{
+  "alert": {
+    "id": "alert-02",
+    "source": "edr",
+    "severity": 6,
+    "timestamp": "2026-06-28T14:23:01Z",
+    "host": "CORP-SRV-DC01",
+    "user": "svc_deploy",
+    "raw": "MEDIUM: PowerShell.exe executed with -EncodedCommand flag by service account svc_deploy. Process spawned from Windows service. WMI queries and registry modifications observed on domain controller.",
+    "telemetry": [
+      {
+        "time": "14:22:01Z",
+        "event": "PowerShell process spawn",
+        "detail": "svchost.exe (SCCM client service, PID 1440) launched powershell.exe -ExecutionPolicy Bypass -NonInteractive -encodedcommand [482-char base64 payload]"
+      },
+      {
+        "time": "14:22:02Z",
+        "event": "Script path resolved from encoded payload",
+        "detail": "Decoded: & 'C:\\Program Files\\Microsoft Configuration Manager\\Bin\\Deploy.ps1' — file present, expected installation path"
+      },
+      {
+        "time": "14:22:05Z",
+        "event": "Authenticode signature verification",
+        "detail": "Deploy.ps1: Authenticode signature valid. Publisher: Microsoft Corporation. Certificate chain: DigiCert → Microsoft Code Signing PCA → Microsoft Corporation. Not expired (exp: 2027-03-15)."
+      },
+      {
+        "time": "14:22:07Z",
+        "event": "WMI software inventory query",
+        "detail": "SELECT * FROM Win32_Product WHERE InstallDate > '20260601' — standard SCCM software inventory scan, no anomalous fields"
+      },
+      {
+        "time": "14:22:45Z",
+        "event": "Registry write",
+        "detail": "HKLM\\SOFTWARE\\Microsoft\\SMS\\Mobile Client\\Compliance\\LastScanTime set to 2026-06-28T14:22:45Z — SCCM compliance namespace, expected artifact"
+      },
+      {
+        "time": "14:23:01Z",
+        "event": "Process exits cleanly",
+        "detail": "powershell.exe exited with code 0. No child processes spawned. No network connections initiated. No files written outside SCCM paths."
+      }
+    ]
+  },
+  "cachedVerdict": {
+    "verdict": "false_positive",
+    "confidence": 0.94,
+    "reasoning": "This alert is a well-understood false positive from the encoded-PowerShell heuristic rule (PS-EncodedCmd) firing on legitimate Microsoft SCCM (System Center Configuration Manager) activity. Every indicator points unambiguously to benign deployment operations: the parent process is the known SCCM client service (svchost.exe, PID 1440), the decoded script resides at the expected Microsoft Configuration Manager installation path, the script carries a valid Authenticode signature from Microsoft Corporation with an unbroken certificate chain, WMI queries match SCCM software inventory patterns seen every patch cycle, and the only registry write is to the Microsoft SMS compliance namespace. The service account svc_deploy is the expected SCCM service account. No network connections, no child processes, no persistence — textbook clean execution.",
+    "timeline": [
+      {
+        "time": "14:22:01Z",
+        "event": "SCCM client invokes PowerShell",
+        "significance": "Expected parent process — SCCM routinely uses encoded PowerShell for deployment automation"
+      },
+      {
+        "time": "14:22:02Z",
+        "event": "Legitimate deployment script identified",
+        "significance": "Known-good path under Microsoft Configuration Manager; no obfuscation after decoding"
+      },
+      {
+        "time": "14:22:05Z",
+        "event": "Microsoft Authenticode signature verified",
+        "significance": "Valid code-signing chain — script cannot have been tampered with post-signing"
+      },
+      {
+        "time": "14:22:07Z",
+        "event": "SCCM software inventory WMI query",
+        "significance": "Routine compliance check consistent with monthly patch-Tuesday cadence"
+      },
+      {
+        "time": "14:22:45Z",
+        "event": "SCCM compliance registry update",
+        "significance": "Expected operational side-effect; confined entirely to Microsoft SMS namespace"
+      },
+      {
+        "time": "14:23:01Z",
+        "event": "Process exits cleanly (code 0)",
+        "significance": "No persistence, no network, no child processes — clean execution lifecycle"
+      }
+    ],
+    "mitre": [],
+    "evidence": [
+      {
+        "signal": "Parent process: SCCM client service (svchost.exe, PID 1440)",
+        "why_it_matters": "Legitimate orchestration context — not spawned from Office, browser, or user interaction"
+      },
+      {
+        "signal": "Microsoft Authenticode signature valid with full certificate chain",
+        "why_it_matters": "Cryptographic guarantee the script has not been modified since Microsoft signed it"
+      },
+      {
+        "signal": "Registry writes exclusively in HKLM\\SOFTWARE\\Microsoft\\SMS\\",
+        "why_it_matters": "No run keys, no startup folders, no scheduled tasks — zero persistence indicators"
+      },
+      {
+        "signal": "Zero network connections, zero child processes on exit",
+        "why_it_matters": "A malicious script would typically beacon out, download a stage 2, or spawn cmd.exe — none of that occurred"
+      }
+    ],
+    "containment": [
+      {
+        "action": "No action required",
+        "target": "CORP-SRV-DC01 — activity is fully explained by SCCM operations",
+        "reversible": true,
+        "rationale": "This is a false positive; any containment action would disrupt legitimate patch management"
+      },
+      {
+        "action": "Tune encoded-PowerShell detection rule to exclude SCCM client parent process",
+        "target": "EDR rule: PS-EncodedCmd — add exclusion for svchost.exe parenting to known SCCM paths",
+        "reversible": true,
+        "rationale": "Reduce noise during patch windows; maintain coverage for non-SCCM encoded-command usage"
+      }
+    ],
+    "summary": "False positive: legitimate Microsoft SCCM deployment script triggered the encoded-PowerShell rule. Signed Microsoft tooling, expected SCCM service account, benign WMI + registry activity only. No action required.",
+    "analyst_baseline_minutes": 22,
+    "agent_seconds": 2.1
+  }
+}
