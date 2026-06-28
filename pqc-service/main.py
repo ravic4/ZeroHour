@@ -10,6 +10,18 @@ from cryptography.hazmat.primitives.asymmetric import rsa, ec, dh, dsa, ed25519,
 from cryptography.hazmat.primitives import serialization
 from cryptography.exceptions import UnsupportedAlgorithm
 
+# liboqs is optional — service still serves /scan if the build is unavailable
+try:
+    import oqs  # type: ignore
+    OQS_AVAILABLE = True
+    OQS_IMPORT_ERROR: Optional[str] = None
+except Exception as e:  # ImportError, OSError on liboqs missing, etc.
+    oqs = None  # type: ignore
+    OQS_AVAILABLE = False
+    OQS_IMPORT_ERROR = f"{type(e).__name__}: {e}"
+
+import time
+
 app = FastAPI(title="Zerohour PQC Scanner", version="1.0.0")
 
 app.add_middleware(
@@ -207,9 +219,116 @@ async def scan(files: list[UploadFile] = File(...)):
     )
 
 
+# ── Phase 4b: Live PQC remediation ──────────────────────────────────────────
+
+SUPPORTED_KEMS = {"ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"}
+SUPPORTED_SIGS = {"ML-DSA-44", "ML-DSA-65", "ML-DSA-87"}
+
+
+class RemediateResult(BaseModel):
+    algorithm: str
+    kind: str  # "kem" | "signature"
+    public_key_bytes: int
+    secret_key_bytes: int
+    ciphertext_bytes: int
+    shared_secret_bytes: int
+    keygen_ms: float
+    encapsulate_ms: float
+    decapsulate_ms: float
+    handshake_verified: bool
+    public_key_preview: str  # first 64 hex chars, demo only
+    library: str
+    notes: str
+
+
+@app.get("/remediate/status")
+def remediate_status():
+    if not OQS_AVAILABLE:
+        return {
+            "available": False,
+            "error": OQS_IMPORT_ERROR,
+            "hint": "Install liboqs + oqs-python. See https://github.com/open-quantum-safe/liboqs-python",
+        }
+    enabled_kems = oqs.get_enabled_kem_mechanisms()  # type: ignore
+    enabled_sigs = oqs.get_enabled_sig_mechanisms()  # type: ignore
+    return {
+        "available": True,
+        "kems": sorted(SUPPORTED_KEMS.intersection(enabled_kems)),
+        "signatures": sorted(SUPPORTED_SIGS.intersection(enabled_sigs)),
+        "library": f"liboqs via oqs-python {getattr(oqs, '__version__', 'unknown')}",
+    }
+
+
+@app.post("/remediate", response_model=RemediateResult)
+def remediate(alg: str = "ML-KEM-768"):
+    if not OQS_AVAILABLE:
+        raise HTTPException(
+            503,
+            f"liboqs is not available on this server. {OQS_IMPORT_ERROR}. "
+            "Install instructions: https://github.com/open-quantum-safe/liboqs-python",
+        )
+    if alg not in SUPPORTED_KEMS and alg not in SUPPORTED_SIGS:
+        raise HTTPException(400, f"Unsupported algorithm: {alg}. Use one of: {sorted(SUPPORTED_KEMS | SUPPORTED_SIGS)}")
+
+    if alg in SUPPORTED_KEMS:
+        with oqs.KeyEncapsulation(alg) as kem:  # type: ignore
+            t0 = time.perf_counter()
+            public_key = kem.generate_keypair()
+            t1 = time.perf_counter()
+            ciphertext, shared_secret_sender = kem.encap_secret(public_key)
+            t2 = time.perf_counter()
+            shared_secret_receiver = kem.decap_secret(ciphertext)
+            t3 = time.perf_counter()
+            details = kem.details
+
+        return RemediateResult(
+            algorithm=alg,
+            kind="kem",
+            public_key_bytes=details["length_public_key"],
+            secret_key_bytes=details["length_secret_key"],
+            ciphertext_bytes=details["length_ciphertext"],
+            shared_secret_bytes=details["length_shared_secret"],
+            keygen_ms=round((t1 - t0) * 1000, 3),
+            encapsulate_ms=round((t2 - t1) * 1000, 3),
+            decapsulate_ms=round((t3 - t2) * 1000, 3),
+            handshake_verified=(shared_secret_sender == shared_secret_receiver),
+            public_key_preview=public_key[:32].hex(),
+            library=f"liboqs (NIST FIPS 203 reference)",
+            notes="Key encapsulation: sender derives ciphertext from public key; receiver recovers identical shared secret using secret key.",
+        )
+
+    # Signature path
+    with oqs.Signature(alg) as sig:  # type: ignore
+        message = b"ZeroHour PQC remediation demo"
+        t0 = time.perf_counter()
+        public_key = sig.generate_keypair()
+        t1 = time.perf_counter()
+        signature = sig.sign(message)
+        t2 = time.perf_counter()
+        verified = sig.verify(message, signature, public_key)
+        t3 = time.perf_counter()
+        details = sig.details
+
+    return RemediateResult(
+        algorithm=alg,
+        kind="signature",
+        public_key_bytes=details["length_public_key"],
+        secret_key_bytes=details["length_secret_key"],
+        ciphertext_bytes=len(signature),  # reuse field for signature size
+        shared_secret_bytes=0,
+        keygen_ms=round((t1 - t0) * 1000, 3),
+        encapsulate_ms=round((t2 - t1) * 1000, 3),  # signing time
+        decapsulate_ms=round((t3 - t2) * 1000, 3),  # verification time
+        handshake_verified=bool(verified),
+        public_key_preview=public_key[:32].hex(),
+        library=f"liboqs (NIST FIPS 204 reference)",
+        notes="Digital signature: signer produces signature over message; verifier confirms authenticity using public key.",
+    )
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "pqc-scanner"}
+    return {"status": "ok", "service": "pqc-scanner", "oqs_available": OQS_AVAILABLE}
 
 
 @app.get("/")
@@ -217,5 +336,10 @@ def root():
     return {
         "service": "Zerohour PQC Scanner",
         "version": "1.0.0",
-        "endpoints": {"scan": "POST /scan (multipart files)", "health": "GET /health"},
+        "endpoints": {
+            "scan": "POST /scan (multipart files)",
+            "remediate": "POST /remediate?alg=ML-KEM-768",
+            "remediate_status": "GET /remediate/status",
+            "health": "GET /health",
+        },
     }
