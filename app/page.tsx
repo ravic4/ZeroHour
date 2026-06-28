@@ -9,6 +9,9 @@ import MitreChips from '@/components/MitreChips';
 import ContainmentList from '@/components/ContainmentList';
 import TimeSaved from '@/components/TimeSaved';
 import EvidenceList from '@/components/EvidenceList';
+import QuantumScanner from '@/components/QuantumScanner';
+
+type Tab = 'triage' | 'quantum';
 
 const SOURCE_STYLES: Record<string, string> = {
   edr:      'bg-blue-900/50  text-blue-300  border-blue-700',
@@ -23,6 +26,7 @@ const SEVERITY_COLOR = (s: number) =>
 const DEMO_ALERTS = getDemoAlerts();
 
 export default function Page() {
+  const [tab, setTab] = useState<Tab>('triage');
   const [demoMode, setDemoMode] = useState(true);
   const [selected, setSelected] = useState<Alert | null>(null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
@@ -74,9 +78,23 @@ export default function Page() {
       {/* Header */}
       <header className="border-b border-slate-800 bg-[#060d18]/95 backdrop-blur sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <span className="text-cyan-400 text-2xl font-black tracking-widest">⚡ ZEROHOUR</span>
-            <span className="text-slate-600 text-sm hidden sm:block">AI SOC Triage Agent</span>
+            <div className="hidden sm:flex items-center gap-1 bg-slate-800/60 rounded-lg p-1">
+              {([['triage', '🛡 Triage'], ['quantum', '⚛ Quantum']] as [Tab, string][]).map(([t, label]) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-widest transition-colors ${
+                    tab === t
+                      ? 'bg-slate-700 text-slate-100'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <button
             onClick={() => {
@@ -97,6 +115,23 @@ export default function Page() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Quantum tab */}
+        {tab === 'quantum' && (
+          <section>
+            <div className="mb-5">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+                Quantum Readiness Scanner
+              </p>
+              <p className="text-slate-600 text-xs">
+                Upload X.509 certs, SSH public keys, or TLS cipher-suite lists to scan for quantum-vulnerable cryptography.
+              </p>
+            </div>
+            <QuantumScanner />
+          </section>
+        )}
+
+        {/* Triage tab */}
+        {tab === 'triage' && <>
         {/* Alert Picker */}
         <section className="mb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
@@ -222,6 +257,7 @@ export default function Page() {
             </p>
           </div>
         )}
+        </>}
       </main>
 
       <footer className="border-t border-slate-800/50 mt-12 py-4 text-center">

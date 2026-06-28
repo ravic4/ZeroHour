@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0.0",
+  "sessionId": "4a28dd54-18d9-4762-a5bf-313165277d22",
+  "targetPath": "/Users/ravic./Cybersecurity/zerohour",
+  "createdAt": "2026-06-28T17:40:17.774Z",
+  "updatedAt": "2026-06-28T18:51:44.607Z",
+  "expiresAt": "2026-06-29T17:40:17.774Z",
+  "title": "zerohour-2026-06-28",
+  "ttlSeconds": 86400,
+  "renewalCount": 0,
+  "maxLifetimeSeconds": 259200,
+  "status": "active",
+  "lastInteractionAt": "2026-06-28T18:51:44.607Z",
+  "expiredAt": null,
+  "archivedAt": null,
+  "s3Path": null,
+  "archiveStatus": "pending",
+  "codebaseContext": {
+    "summary": {
+      "filesScanned": 31,
+      "directoriesScanned": 9,
+      "totalLoc": 8229,
+      "totalBytes": 326135
+    },
+    "frameworks": [
+      "nextjs",
+      "react"
+    ],
+    "entryPoints": [],
+    "riskSurfaces": [
+      {
+        "surface": "code_quality",
+        "reason": "Source files detected."
+      },
+      {
+        "surface": "docs_knowledge",
+        "reason": "Documentation assets detected."
+      },
+      {
+        "surface": "frontend_runtime",
+        "reason": "Frontend/runtime JavaScript stack detected."
+      },
+      {
+        "surface": "security_overlay",
+        "reason": "Credential/policy scanning is applicable for any repository ingest."
+      },
+      {
+        "surface": "supply_chain",
+        "reason": "Dependency manifests/lockfiles detected."
+      }
+    ]
+  },
+  "sharedResources": {
+    "provisionedIdentityIds": [],
+    "provisioningTags": [],
+    "provisionCount": 0,
+    "lastProvisionedAt": null,
+    "updatedAt": "2026-06-28T17:40:17.774Z"
+  },
+  "remoteTitleSync": {
+    "pending": true,
+    "title": "zerohour-2026-06-28",
+    "lastAttemptAt": "2026-06-28T17:40:17.879Z",
+    "lastSyncedAt": null,
+    "failureReason": "SESSION_NOT_FOUND"
+  },
+  "template": null
+}
