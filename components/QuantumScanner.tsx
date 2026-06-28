@@ -27,11 +27,92 @@ const CLASS_STYLES = {
   UNKNOWN:            { bg: 'bg-slate-800/50',   border: 'border-slate-700', text: 'text-slate-400',  label: 'UNKNOWN'    },
 } as const;
 
-export default function QuantumScanner() {
+const MOCK_SCAN: ScanResult = {
+  total_assets: 7,
+  vulnerable_count: 4,
+  vulnerable_pct: 57.1,
+  hndl_assets: 4,
+  findings: [
+    {
+      asset: 'prod-api-gateway.pem (CN=api.corp.internal)',
+      algorithm: 'RSA-2048',
+      key_size: 2048,
+      classification: 'QUANTUM_VULNERABLE',
+      q_day_risk: 'high',
+      hndl: true,
+      recommended_replacement: 'ML-KEM-768 (FIPS 203) for key exchange; ML-DSA-65 (FIPS 204) for signatures',
+    },
+    {
+      asset: 'tls-load-balancer.crt (CN=lb.corp.internal)',
+      algorithm: 'ECDSA (secp256r1)',
+      key_size: 256,
+      classification: 'QUANTUM_VULNERABLE',
+      q_day_risk: 'high',
+      hndl: true,
+      recommended_replacement: 'ML-DSA-65 (FIPS 204) for signatures; ML-KEM-768 (FIPS 203) for key exchange',
+    },
+    {
+      asset: 'ciphers.txt: TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384',
+      algorithm: 'ECDHE-RSA',
+      key_size: 256,
+      classification: 'QUANTUM_VULNERABLE',
+      q_day_risk: 'high',
+      hndl: true,
+      recommended_replacement: 'ML-KEM-768 (FIPS 203) + ML-DSA-65 (FIPS 204)',
+    },
+    {
+      asset: 'ciphers.txt: TLS_RSA_WITH_AES_128_CBC_SHA',
+      algorithm: 'RSA key exchange',
+      key_size: 2048,
+      classification: 'QUANTUM_VULNERABLE',
+      q_day_risk: 'high',
+      hndl: true,
+      recommended_replacement: 'ML-KEM-768 (FIPS 203)',
+    },
+    {
+      asset: 'deploy-key.pub',
+      algorithm: 'Ed25519',
+      key_size: 256,
+      classification: 'GROVER_WEAKENED',
+      q_day_risk: 'low',
+      hndl: false,
+      recommended_replacement: 'ML-DSA-65 (FIPS 204) for long-lived signing keys',
+    },
+    {
+      asset: 'ciphers.txt: TLS_AES_128_GCM_SHA256',
+      algorithm: 'AES-128',
+      key_size: 128,
+      classification: 'GROVER_WEAKENED',
+      q_day_risk: 'low',
+      hndl: false,
+      recommended_replacement: 'AES-256',
+    },
+    {
+      asset: 'new-signing-cert.pem (CN=pqc-pilot.corp.internal)',
+      algorithm: 'ML-DSA-65 (FIPS 204)',
+      key_size: 1952,
+      classification: 'QUANTUM_SAFE',
+      q_day_risk: 'none',
+      hndl: false,
+      recommended_replacement: null,
+    },
+  ],
+};
+
+export default function QuantumScanner({ demoMode }: { demoMode?: boolean }) {
   const [dragging, setDragging] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const loadDemo = useCallback(async () => {
+    setScanning(true);
+    setResult(null);
+    setError(null);
+    await new Promise((r) => setTimeout(r, 700));
+    setResult(MOCK_SCAN);
+    setScanning(false);
+  }, []);
 
   const runScan = useCallback(async (files: File[]) => {
     setScanning(true);
@@ -68,14 +149,14 @@ export default function QuantumScanner() {
 
   return (
     <div className="space-y-5">
-      {/* Header metrics */}
+      {/* Headline metrics */}
       {result && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total Assets',    value: result.total_assets,    color: 'text-slate-100' },
-            { label: 'Vulnerable',      value: result.vulnerable_count, color: 'text-red-400'   },
-            { label: '% Vulnerable',    value: `${result.vulnerable_pct}%`, color: result.vulnerable_pct > 50 ? 'text-red-400' : 'text-amber-400' },
-            { label: 'HNDL Risk',       value: result.hndl_assets,     color: result.hndl_assets > 0 ? 'text-red-400' : 'text-green-400' },
+            { label: 'Total Assets',  value: result.total_assets,    color: 'text-slate-100' },
+            { label: 'Vulnerable',    value: result.vulnerable_count, color: 'text-red-400'   },
+            { label: '% Vulnerable',  value: `${result.vulnerable_pct}%`, color: result.vulnerable_pct > 50 ? 'text-red-400' : 'text-amber-400' },
+            { label: 'HNDL Risk',     value: result.hndl_assets,     color: result.hndl_assets > 0 ? 'text-red-400' : 'text-green-400' },
           ].map((m) => (
             <div key={m.label} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-center">
               <div className={`text-3xl font-black font-mono ${m.color}`}>{m.value}</div>
@@ -83,6 +164,20 @@ export default function QuantumScanner() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Demo scan button */}
+      {demoMode && !result && !scanning && (
+        <button
+          onClick={loadDemo}
+          className="w-full flex items-center justify-center gap-3 rounded-xl border border-cyan-800 bg-cyan-950/30 hover:bg-cyan-900/30 p-5 transition-colors"
+        >
+          <span className="text-2xl">⚛</span>
+          <div className="text-left">
+            <p className="text-cyan-400 font-bold text-sm">Run Demo Crypto Scan</p>
+            <p className="text-slate-500 text-xs mt-0.5">Scans a mock corporate crypto inventory — no files needed</p>
+          </div>
+        </button>
       )}
 
       {/* Drop zone */}
@@ -98,11 +193,16 @@ export default function QuantumScanner() {
         <span className="text-3xl">{scanning ? '⚙️' : '🔬'}</span>
         <div className="text-center">
           <p className="text-slate-200 font-semibold">
-            {scanning ? 'Scanning crypto artifacts…' : 'Drop crypto artifacts here'}
+            {scanning ? 'Scanning crypto artifacts…' : 'Drop real crypto artifacts here'}
           </p>
           <p className="text-slate-500 text-xs mt-1">
             Accepts: .pem .crt .cer (X.509 certs) · .pub (SSH keys) · .txt (TLS cipher suites)
           </p>
+          {!demoMode && (
+            <p className="text-slate-600 text-xs mt-1">
+              Requires PQC service: <span className="font-mono">cd pqc-service && uvicorn main:app --port 8000</span>
+            </p>
+          )}
         </div>
       </label>
 
@@ -124,7 +224,15 @@ export default function QuantumScanner() {
             <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Cryptographic Bill of Materials (CBOM)
             </h3>
-            <span className="text-[10px] text-slate-600 font-mono">CycloneDX v1.4</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-slate-600 font-mono">CycloneDX v1.4</span>
+              <button
+                onClick={() => { setResult(null); setError(null); }}
+                className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors"
+              >
+                ✕ clear
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -142,7 +250,7 @@ export default function QuantumScanner() {
                   const s = CLASS_STYLES[f.classification] ?? CLASS_STYLES.UNKNOWN;
                   return (
                     <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                      <td className="px-4 py-2.5 font-mono text-xs text-slate-300 max-w-[200px] truncate" title={f.asset}>
+                      <td className="px-4 py-2.5 font-mono text-xs text-slate-300 max-w-[220px] truncate" title={f.asset}>
                         {f.asset}
                       </td>
                       <td className="px-4 py-2.5 font-mono text-xs text-slate-200 whitespace-nowrap">{f.algorithm}</td>

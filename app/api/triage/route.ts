@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { AlertSchema, VerdictSchema } from '@/lib/schema';
 import { buildSystemPrompt } from '@/lib/prompt';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const PROVIDER = process.env.PROVIDER ?? 'anthropic';
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434/v1';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? 'llama3.2';
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const ollama = new OpenAI({ baseURL: OLLAMA_BASE_URL, apiKey: 'ollama' });
 
 function stripFences(text: string): string {
   return text
@@ -12,12 +18,25 @@ function stripFences(text: string): string {
     .trim();
 }
 
-async function callClaude(alertJson: string, retryContext?: string): Promise<string> {
+async function callLLM(alertJson: string, retryContext?: string): Promise<string> {
   const userContent = retryContext
     ? `Alert and telemetry:\n${alertJson}\n\nPrevious response failed JSON/schema validation with: ${retryContext}\nReturn valid JSON only — no fences, no prose.`
     : `Alert and telemetry:\n${alertJson}`;
 
-  const message = await client.messages.create({
+  if (PROVIDER === 'ollama') {
+    const res = await ollama.chat.completions.create({
+      model: OLLAMA_MODEL,
+      temperature: 0.2,
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        { role: 'user', content: userContent },
+      ],
+    });
+    return res.choices[0]?.message?.content ?? '';
+  }
+
+  // Default: Anthropic
+  const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     temperature: 0.2,
@@ -36,13 +55,13 @@ export async function POST(req: NextRequest) {
     const alert = AlertSchema.parse(body);
     const alertJson = JSON.stringify(alert, null, 2);
 
-    let raw = await callClaude(alertJson);
+    let raw = await callLLM(alertJson);
     let parsed: unknown;
 
     try {
       parsed = JSON.parse(stripFences(raw));
     } catch (firstErr) {
-      raw = await callClaude(alertJson, String(firstErr));
+      raw = await callLLM(alertJson, String(firstErr));
       parsed = JSON.parse(stripFences(raw));
     }
 

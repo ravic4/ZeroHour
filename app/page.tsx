@@ -126,7 +126,7 @@ export default function Page() {
                 Upload X.509 certs, SSH public keys, or TLS cipher-suite lists to scan for quantum-vulnerable cryptography.
               </p>
             </div>
-            <QuantumScanner />
+            <QuantumScanner demoMode={demoMode} />
           </section>
         )}
 
@@ -191,7 +191,7 @@ export default function Page() {
               </span>
             </div>
             <p className="text-slate-500 text-sm">
-              {demoMode ? 'Loading cached verdict…' : 'Calling Claude claude-sonnet-4-6 · Validating schema…'}
+              {demoMode ? 'Loading cached verdict…' : 'Calling AI model · Validating schema…'}
             </p>
           </div>
         )}
