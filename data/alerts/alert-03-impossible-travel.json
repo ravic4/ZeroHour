@@ -137,6 +137,20 @@
         "rationale": "AiTM attacks frequently harvest OAuth tokens alongside session cookies; check for unauthorized app grants"
       }
     ],
+    "next_steps": [
+      {
+        "step": "Complete exfiltration of 2,441 CRM customer records to attacker-controlled infrastructure",
+        "probability": "high",
+        "timeframe": "within 30 minutes"
+      },
+      {
+        "step": "Pivot to Salesforce admin functions to create persistent backdoor access",
+        "probability": "medium",
+        "timeframe": "within 1 hour"
+      }
+    ],
+    "post_quantum_risk": false,
+    "ciso_summary": "One of our employee accounts appears to have been accessed simultaneously from New York and Tokyo within 13 minutes — a physical impossibility — and during the Tokyo session someone bulk-downloaded thousands of customer records and confidential business documents including our sales forecast and pricing strategy. We have already terminated the suspicious session and are contacting the employee directly to confirm whether they authorized this access, which will determine our next steps. If confirmed as unauthorized, we may be required to notify affected customers about the data that was accessed.",
     "summary": "Impossible travel: NY→Tokyo in 12m38s with new device fingerprint; Tokyo session bulk-accessed 2,441 CRM records and 15 confidential files. MFA passed both sessions. Contact user immediately; terminate Tokyo session proactively pending verification.",
     "analyst_baseline_minutes": 35,
     "agent_seconds": 2.8

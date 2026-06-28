@@ -43,7 +43,13 @@
         "event": "Data exfiltration to external server",
         "detail": "HTTPS POST requests to api.datasyncpro-backup.com (IP: 91.195.240.117, AS: Frantech Solutions — known bulletproof hosting). Domain registered 3 days ago. Legitimate DataSyncPro.com resolves to 104.21.55.89 (Cloudflare). Different domains, different operators."
       }
-    ]
+    ],
+    "exposure_profile": {
+      "cves": ["CVE-2025-21298"],
+      "unpatched_count": 1,
+      "encryption_legacy": true,
+      "risk_score": 6.2
+    }
   },
   "cachedVerdict": {
     "verdict": "true_positive",
@@ -163,6 +169,25 @@
         "rationale": "Default log retention is 90 days; export immediately to preserve forensic record of all Graph API calls made by the malicious app"
       }
     ],
+    "next_steps": [
+      {
+        "step": "Leverage active 90-day refresh token to re-establish access after initial revocation attempt",
+        "probability": "high",
+        "timeframe": "ongoing until token fully revoked"
+      },
+      {
+        "step": "Expand OAuth phishing campaign targeting additional high-value accounts in the tenant",
+        "probability": "medium",
+        "timeframe": "within 24 hours"
+      },
+      {
+        "step": "Use harvested 1,247-user directory to launch targeted spearphishing at finance and legal teams",
+        "probability": "medium",
+        "timeframe": "within 48 hours"
+      }
+    ],
+    "post_quantum_risk": true,
+    "ciso_summary": "A criminal actor created a fake application disguised as a legitimate business tool and tricked one of our employees into granting it full access to company email and files, resulting in the theft of over 6 gigabytes of confidential data including financial reports, legal documents, and executive briefings. We have immediately cut off the application's access to our systems and blocked the server where the stolen data was being sent. Because the stolen data included sensitive business and personal information, our legal and data privacy teams are now assessing whether we are required to notify employees, customers, and regulators within the applicable statutory timeframes.",
     "summary": "Illicit OAuth consent grant: malicious 'DataSyncPro' app exfiltrated 14,200 emails (2.3 GB) and 847 files (4.1 GB — finance/legal/HR) via Microsoft Graph API to a typosquatted bulletproof domain. Revoke app tokens now. Legal/privacy breach notification likely required.",
     "analyst_baseline_minutes": 52,
     "agent_seconds": 3.8

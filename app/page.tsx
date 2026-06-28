@@ -9,6 +9,9 @@ import MitreChips from '@/components/MitreChips';
 import ContainmentList from '@/components/ContainmentList';
 import TimeSaved from '@/components/TimeSaved';
 import EvidenceList from '@/components/EvidenceList';
+import NextSteps from '@/components/NextSteps';
+import CISOSummary from '@/components/CISOSummary';
+import ExposureProfile from '@/components/ExposureProfile';
 
 const SOURCE_STYLES: Record<string, string> = {
   edr:      'bg-blue-900/50  text-blue-300  border-blue-700',
@@ -102,7 +105,7 @@ export default function Page() {
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
             Incoming Alerts — Select to Triage
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {DEMO_ALERTS.map((alert) => {
               const label = ALERT_LABELS[alert.id];
               const isActive = selected?.id === alert.id;
@@ -177,7 +180,6 @@ export default function Page() {
         {/* Verdict */}
         {verdict && !loading && (
           <div className="space-y-4">
-            {/* Elapsed */}
             {elapsed !== null && (
               <div className="flex items-center gap-2 text-xs text-slate-600">
                 <span className="text-green-500">●</span>
@@ -186,10 +188,12 @@ export default function Page() {
               </div>
             )}
 
-            {/* Main verdict */}
             <VerdictCard verdict={verdict} />
 
-            {/* Grid row: Timeline + MITRE + Time Saved */}
+            {selected?.exposure_profile && (
+              <ExposureProfile profile={selected.exposure_profile} />
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-1">
                 <Timeline timeline={verdict.timeline} />
@@ -202,11 +206,16 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Evidence + Containment */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <EvidenceList evidence={verdict.evidence} />
               <ContainmentList containment={verdict.containment} />
             </div>
+
+            {verdict.next_steps.length > 0 && (
+              <NextSteps steps={verdict.next_steps} />
+            )}
+
+            <CISOSummary verdict={verdict} />
           </div>
         )}
 

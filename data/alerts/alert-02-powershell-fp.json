@@ -109,6 +109,9 @@
         "rationale": "Reduce noise during patch windows; maintain coverage for non-SCCM encoded-command usage"
       }
     ],
+    "next_steps": [],
+    "post_quantum_risk": false,
+    "ciso_summary": "Our automated security system triggered a false alarm when the IT team ran a scheduled software update — the activity was a legitimate, Microsoft-signed maintenance script running on our domain controller. No attack occurred, no data was accessed inappropriately, and no systems were compromised. We are fine-tuning our detection settings to prevent similar false alarms during routine IT maintenance windows.",
     "summary": "False positive: legitimate Microsoft SCCM deployment script triggered the encoded-PowerShell rule. Signed Microsoft tooling, expected SCCM service account, benign WMI + registry activity only. No action required.",
     "analyst_baseline_minutes": 22,
     "agent_seconds": 2.1

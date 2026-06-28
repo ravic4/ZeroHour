@@ -43,12 +43,18 @@ export default function VerdictCard({ verdict }: { verdict: Verdict }) {
         </div>
       </div>
 
-      <div className="h-1.5 bg-slate-800 rounded-full mb-5">
+      <div className="h-1.5 bg-slate-800 rounded-full mb-4">
         <div
           className={`h-full rounded-full ${s.bar} transition-all duration-1000`}
           style={{ width: `${pct}%` }}
         />
       </div>
+
+      {verdict.post_quantum_risk && (
+        <div className="flex items-center gap-1.5 mb-4 text-[10px] font-bold uppercase tracking-widest text-amber-300 border border-amber-800 bg-amber-950/30 px-2.5 py-1 rounded w-fit">
+          ⚠ Post-Quantum Risk · Legacy encryption in C2 / exfil channel
+        </div>
+      )}
 
       <p className="text-slate-100 text-base font-semibold leading-relaxed mb-3">
         {verdict.summary}

@@ -1,0 +1,180 @@
+{
+  "alert": {
+    "id": "alert-05",
+    "source": "identity",
+    "severity": 9,
+    "timestamp": "2026-06-28T14:22:10Z",
+    "host": "corp-idp-prod",
+    "user": "cfo@acme.corp",
+    "raw": "CRITICAL: AI-generated voice clone passed voice-call MFA (voice-print match 99.3%, acoustic anomaly score 0.87 vs. block threshold 0.90). Deepfake video injection bypassed liveness check (deepfake score 0.91 vs. block threshold 0.95). Session active — accessing HR PII database and finance dashboards. 2.3 GB staged to external S3 endpoint.",
+    "telemetry": [
+      {
+        "time": "14:19:44Z",
+        "event": "Voice MFA challenge issued",
+        "detail": "One-time passcode delivered via automated voice call to +1-617-555-0192 registered to cfo@acme.corp"
+      },
+      {
+        "time": "14:19:51Z",
+        "event": "Voice MFA bypass — AI voice clone",
+        "detail": "Automated call intercepted. AI-synthesized voice replica returned OTP with 99.3% voice-print match. Acoustic anomaly score: 0.87 (block threshold: 0.90 — engineered just below trigger). Auth provider accepted."
+      },
+      {
+        "time": "14:20:08Z",
+        "event": "Video liveness check triggered",
+        "detail": "Step-up video verification initiated: login geolocated to Mumbai, India vs. CFO registered home location Boston, MA — impossible same-session travel without VPN."
+      },
+      {
+        "time": "14:20:14Z",
+        "event": "Deepfake video injection — liveness check bypassed",
+        "detail": "Live camera feed replaced with synthetic video stream of CFO's face. Frame-level deepfake detection score: 0.91 (block threshold: 0.95 — near-miss). Liveness check passed. Full session token issued."
+      },
+      {
+        "time": "14:20:55Z",
+        "event": "HR PII database access",
+        "detail": "Session accessed /hr/employees endpoint: 8,400 records queried including SSNs, salary bands, emergency contacts, and performance reviews."
+      },
+      {
+        "time": "14:22:10Z",
+        "event": "Finance data exfiltration staging",
+        "detail": "2.3 GB staged: Q4 earnings projections, M&A pipeline documents, board presentations. Destination: s3://data-analytics-temp-291[.]s3[.]amazonaws.com — bucket registered 4 days ago, no corporate ownership in S3 org policy."
+      }
+    ],
+    "exposure_profile": {
+      "cves": ["CVE-2025-0282", "CVE-2024-50379"],
+      "unpatched_count": 2,
+      "encryption_legacy": false,
+      "risk_score": 7.8
+    }
+  },
+  "cachedVerdict": {
+    "verdict": "true_positive",
+    "confidence": 0.96,
+    "reasoning": "This is a confirmed synthetic identity attack — a 2026-class threat exploiting AI-generated biometric spoofing to defeat multi-factor authentication. Both the voice-call MFA and video liveness check were bypassed by near-threshold deepfakes: the voice anomaly score of 0.87 cleared the 0.90 detection threshold by a calculated margin, and the deepfake video score of 0.91 cleared the 0.95 block threshold by the same deliberate tolerance. Two consecutive near-miss threshold clearances confirm a calibrated adversary who pre-tested detection thresholds before the operation — this is not a random spoofing attempt. The Mumbai geolocation versus Boston registered home is physically impossible without a VPN/proxy, confirming the session is not the legitimate CFO. The targeting is precise: the session moved immediately to HR PII and finance data, not inbox or calendar, indicating prior reconnaissance or insider-assisted target selection. With 2.3 GB already staged for exfiltration to an attacker-controlled S3 bucket registered four days ago, every minute of delayed containment increases regulatory and competitive exposure.",
+    "timeline": [
+      {
+        "time": "14:19:44Z",
+        "event": "Voice MFA challenge intercepted",
+        "significance": "Attacker had prior knowledge of MFA delivery channel — possible OSINT on CFO's registered phone number"
+      },
+      {
+        "time": "14:19:51Z",
+        "event": "AI voice clone passes MFA (anomaly score 0.87 vs. threshold 0.90)",
+        "significance": "Deliberately engineered to clear detection threshold — sophisticated calibrated attacker, not opportunistic"
+      },
+      {
+        "time": "14:20:08Z",
+        "event": "Step-up video check triggered by Mumbai geolocation anomaly",
+        "significance": "Defense layer activated — attacker had a deepfake pre-prepared, confirming pre-planned operation"
+      },
+      {
+        "time": "14:20:14Z",
+        "event": "Deepfake video bypasses liveness check (score 0.91 vs. threshold 0.95)",
+        "significance": "Second biometric factor defeated — session token issued; attacker fully inside trust boundary"
+      },
+      {
+        "time": "14:20:55Z",
+        "event": "8,400 HR records accessed (SSNs, salaries, performance data)",
+        "significance": "Immediate pivot to PII — GDPR/CCPA notification likely triggered; precision targeting confirms prior intelligence"
+      },
+      {
+        "time": "14:22:10Z",
+        "event": "2.3 GB financial data staged to attacker-controlled S3 bucket",
+        "significance": "Exfiltration imminent — M&A pipeline and board presentations represent competitive intelligence of extreme value"
+      }
+    ],
+    "mitre": [
+      {
+        "tactic": "Credential Access",
+        "technique": "Multi-Factor Authentication Request Generation",
+        "id": "T1621"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Use Alternate Authentication Material",
+        "id": "T1550"
+      },
+      {
+        "tactic": "Collection",
+        "technique": "Data from Information Repositories",
+        "id": "T1213"
+      },
+      {
+        "tactic": "Exfiltration",
+        "technique": "Exfiltration to Cloud Storage",
+        "id": "T1567.002"
+      }
+    ],
+    "evidence": [
+      {
+        "signal": "Voice anomaly score 0.87 — engineered just below 0.90 detection threshold",
+        "why_it_matters": "Threshold-aware attack confirms the adversary tested detection limits before executing — advanced, well-resourced threat actor"
+      },
+      {
+        "signal": "Mumbai geolocation vs. Boston registered home — same session, no travel time",
+        "why_it_matters": "Confirms the session is not the legitimate CFO; provides the impossible-travel chain of evidence"
+      },
+      {
+        "signal": "Deepfake video score 0.91 — cleared 0.95 block threshold by engineered margin",
+        "why_it_matters": "Two consecutive near-miss threshold clearances confirm a calibrated, pre-tested attack campaign"
+      },
+      {
+        "signal": "Destination S3 bucket registered 4 days ago — no corporate ownership",
+        "why_it_matters": "Ephemeral attacker-controlled infrastructure; once data arrives it cannot be recalled or deleted by the victim org"
+      }
+    ],
+    "containment": [
+      {
+        "action": "Terminate active session and revoke all tokens for this account",
+        "target": "cfo@acme.corp — all active bearer and refresh tokens via identity provider",
+        "reversible": true,
+        "rationale": "Immediately halt the in-progress exfiltration; block S3 staging from completing before 2.3 GB transfer finishes"
+      },
+      {
+        "action": "Block exfiltration endpoint at perimeter firewall and DNS",
+        "target": "data-analytics-temp-291.s3.amazonaws.com — attacker-controlled S3 bucket",
+        "reversible": true,
+        "rationale": "Prevent staged data from completing upload; block any future callback from this infrastructure"
+      },
+      {
+        "action": "Re-enroll MFA with FIDO2/hardware passkey — disable voice-call MFA channel",
+        "target": "cfo@acme.corp — identity provider MFA configuration",
+        "reversible": true,
+        "rationale": "Voice-call MFA is defeated by AI voice cloning; FIDO2 hardware keys are phishing and clone-resistant by cryptographic design"
+      },
+      {
+        "action": "Notify Legal, DPO, and CISO — 8,400 HR PII records trigger regulatory disclosure",
+        "target": "Legal + Data Protection Officer + CISO",
+        "reversible": false,
+        "rationale": "SSNs, salaries, and performance data for 8,400 employees triggers GDPR Article 33 (72-hour notification) and state-level breach notification statutes"
+      },
+      {
+        "action": "Audit all accounts using voice-call MFA and initiate org-wide re-enrollment",
+        "target": "All identity provider accounts with voice-call or SMS MFA enabled",
+        "reversible": true,
+        "rationale": "If attacker calibrated thresholds against the CFO account, other C-suite accounts with the same MFA type are at immediate risk"
+      }
+    ],
+    "next_steps": [
+      {
+        "step": "Complete 2.3 GB financial and HR data exfiltration to attacker-controlled S3 bucket before session is terminated",
+        "probability": "high",
+        "timeframe": "within 5 minutes"
+      },
+      {
+        "step": "Use active CFO session to authorize fraudulent wire transfer or manipulate M&A documents",
+        "probability": "medium",
+        "timeframe": "within 30 minutes"
+      },
+      {
+        "step": "Apply same calibrated synthetic identity technique to other C-suite accounts identified via HR data",
+        "probability": "medium",
+        "timeframe": "within 24 hours"
+      }
+    ],
+    "post_quantum_risk": false,
+    "ciso_summary": "A highly sophisticated attacker used artificial intelligence to generate a fake voice and video of our CFO to bypass multiple security checks and gain unauthorized access to company systems, then immediately accessed private records for 8,400 employees — including Social Security numbers and salaries — and is in the process of stealing confidential financial and strategic documents. We are terminating the fraudulent session immediately, blocking the destination where the data was being sent, and upgrading the CFO's account security to hardware-based authentication that cannot be defeated by AI impersonation. Because personal employee data was accessed, we are notifying our legal and compliance teams to assess our notification obligations to employees and regulators.",
+    "summary": "Synthetic identity attack: AI voice clone + deepfake video defeated CFO multi-factor authentication. Session accessed 8,400 HR PII records and staged 2.3 GB financial data (M&A pipeline, board presentations) to attacker-controlled S3. Terminate session, block exfil endpoint, re-enroll FIDO2, notify DPO immediately.",
+    "analyst_baseline_minutes": 68,
+    "agent_seconds": 4.1
+  }
+}

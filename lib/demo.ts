@@ -4,8 +4,9 @@ import alert01 from '../data/alerts/alert-01-cred-theft.json';
 import alert02 from '../data/alerts/alert-02-powershell-fp.json';
 import alert03 from '../data/alerts/alert-03-impossible-travel.json';
 import alert04 from '../data/alerts/alert-04-oauth-abuse.json';
+import alert05 from '../data/alerts/alert-05-synthetic-identity.json';
 
-const FIXTURES = [alert01, alert02, alert03, alert04] as Array<{
+const FIXTURES = [alert01, alert02, alert03, alert04, alert05] as Array<{
   alert: Alert;
   cachedVerdict: Verdict;
 }>;
@@ -35,5 +36,9 @@ export const ALERT_LABELS: Record<string, { title: string; description: string }
   'alert-04': {
     title: 'OAuth Token Abuse',
     description: 'Third-party app exfiltrating 6.4 GB via Graph API',
+  },
+  'alert-05': {
+    title: 'AI Synthetic Identity Bypass',
+    description: 'Deepfake voice + video defeated CFO MFA',
   },
 };

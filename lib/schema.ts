@@ -13,6 +13,12 @@ export const AlertSchema = z.object({
     event: z.string(),
     detail: z.string(),
   })),
+  exposure_profile: z.object({
+    cves: z.array(z.string()),
+    unpatched_count: z.number(),
+    encryption_legacy: z.boolean(),
+    risk_score: z.number().min(0).max(10),
+  }).optional(),
 });
 
 export const VerdictSchema = z.object({
@@ -39,6 +45,13 @@ export const VerdictSchema = z.object({
     reversible: z.boolean(),
     rationale: z.string(),
   })),
+  next_steps: z.array(z.object({
+    step: z.string(),
+    probability: z.enum(['high', 'medium', 'low']),
+    timeframe: z.string(),
+  })),
+  post_quantum_risk: z.boolean(),
+  ciso_summary: z.string(),
   summary: z.string(),
   analyst_baseline_minutes: z.number(),
   agent_seconds: z.number(),
