@@ -19,6 +19,12 @@ const VERDICT_EXAMPLE = `{
     { "action": "Force password reset", "target": "jsmith", "reversible": false, "rationale": "Credentials are compromised and must be rotated immediately" },
     { "action": "Block PsExec on perimeter", "target": "Firewall ruleset", "reversible": true, "rationale": "Limit lateral movement capability" }
   ],
+  "next_steps": [
+    { "step": "Ransomware deployment across domain-joined systems", "probability": "high", "timeframe": "within 2 hours" },
+    { "step": "Data exfiltration from file server prior to encryption", "probability": "medium", "timeframe": "within 1 hour" }
+  ],
+  "post_quantum_risk": true,
+  "ciso_summary": "An attacker has stolen employee credentials and accessed the server controlling all company accounts. If not stopped immediately, the attacker could encrypt all company data or steal confidential files. We are isolating the affected machine and resetting compromised credentials now.",
   "summary": "Active credential theft and lateral movement by a threat actor using Mimikatz and PsExec — immediate containment required.",
   "analyst_baseline_minutes": 45,
   "agent_seconds": 4
@@ -33,10 +39,13 @@ ${VERDICT_EXAMPLE}
 Rules:
 - verdict: exactly one of true_positive, false_positive, needs_review
 - confidence: number 0.0–1.0
-- timeline: array of objects each with "time", "event", AND "significance" fields
+- timeline: array of objects each with "time", "event", AND "significance" fields — reflect actual event sequence from telemetry
 - mitre: array of objects each with "tactic", "technique", AND "id" fields — use [] for false positives
 - evidence: array of objects each with "signal" AND "why_it_matters" fields
-- containment: array of objects each with "action", "target", "reversible" (boolean), AND "rationale" fields
+- containment: array of objects each with "action", "target", "reversible" (boolean), AND "rationale" fields — recommendations only, never live commands
+- next_steps: predict 2–4 adversary actions if containment does NOT happen; use [] for false positives. Each object needs "step", "probability" (high|medium|low), and "timeframe"
+- post_quantum_risk: true if alert involves data exfiltration or C2 traffic over legacy encryption (TLS 1.2 or below) vulnerable to harvest-now-decrypt-later attacks
+- ciso_summary: exactly 3 sentences, no technical jargon — what happened, what is at business risk, what is being done. Write for a non-technical board member.
 - analyst_baseline_minutes: integer — realistic minutes a human analyst would spend
 - agent_seconds: integer — AI analysis time, typically 2–8
 - Return raw JSON only. No markdown fences. No text before or after the JSON.`;

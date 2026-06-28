@@ -38,7 +38,13 @@
         "event": "C2 beacon established",
         "detail": "HTTPS POST to 185.220.101.47:443 every 60s; jitter 10%; TLS fingerprint matches Cobalt Strike default malleable C2 profile"
       }
-    ]
+    ],
+    "exposure_profile": {
+      "cves": ["CVE-2024-3400", "CVE-2023-44487", "CVE-2022-26134"],
+      "unpatched_count": 3,
+      "encryption_legacy": true,
+      "risk_score": 8.4
+    }
   },
   "cachedVerdict": {
     "verdict": "true_positive",
@@ -148,6 +154,25 @@
         "rationale": "Chain-of-custody forensic image needed to determine initial access vector and legal/regulatory obligations"
       }
     ],
+    "next_steps": [
+      {
+        "step": "Golden Ticket creation using extracted Kerberos TGT for domain-wide persistence",
+        "probability": "high",
+        "timeframe": "within 30 minutes"
+      },
+      {
+        "step": "Ransomware deployment across all domain-joined systems via PsExec",
+        "probability": "high",
+        "timeframe": "within 2 hours"
+      },
+      {
+        "step": "Mass data exfiltration from CORP-SRV-FS02 file shares prior to encryption",
+        "probability": "medium",
+        "timeframe": "within 1 hour"
+      }
+    ],
+    "post_quantum_risk": true,
+    "ciso_summary": "An attacker has stolen employee login credentials from one of our office computers and has already used them to reach the server that controls all company accounts and systems. If we do not act immediately, the attacker could disable every employee's access, deploy ransomware that encrypts all company data, or steal confidential files from our servers. We are isolating the affected computers, resetting the compromised credentials, and cutting off the attacker's remote control connection right now.",
     "summary": "Active intrusion: Mimikatz credential dump from CORP-WS-114 with PsExec lateral movement to domain controller and file server — Cobalt Strike C2 operator live. Isolate WS-114, reset jsmith, block C2 IP now.",
     "analyst_baseline_minutes": 47,
     "agent_seconds": 3.2
