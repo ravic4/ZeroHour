@@ -23,6 +23,10 @@
 # misc
 .DS_Store
 *.pem
+!pqc-service/samples/*.pem
+
+# sentinelayer session state (local only)
+.sentinelayer/
 
 # debug
 npm-debug.log*
