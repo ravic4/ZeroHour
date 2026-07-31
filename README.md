@@ -35,3 +35,37 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 # ZeroHour
+
+ returns a structured verdict:
+- **Verdict** — true positive / false positive / needs review, with confidence
+- **MITRE ATT&CK mapping** — the techniques the activity corresponds to
+- **Evidence** — the specific signals supporting the call
+- **Exposure profile** — what's at risk if it's real
+- **Containment steps** and **next steps** — concrete recommended actions
+- **CISO summary** — a plain-language write-up for leadership
+- **Time saved** — estimated analyst minutes saved vs. manual triage
+
+Built on an LLM with a strict output schema (`lib/schema.ts`, `lib/prompt.ts`) so every response is structured and auditable rather than free text.
+
+**2. Post-quantum cryptography scanner** (`pqc-service/`)
+A Python service that inspects certificates, SSH keys, and TLS cipher suites and flags quantum-vulnerable algorithms (e.g. RSA-2048, ECDSA P-256) versus post-quantum-ready ones (e.g. ML-DSA). Helps answer "where is my crypto exposed once quantum matters?"
+
+## Sample scenarios included
+Credential theft · PowerShell false positive · impossible travel · OAuth abuse · synthetic identity (`data/alerts/`).
+
+## Stack
+- **Front end / API:** Next.js + TypeScript (`app/api/triage/route.ts`, dashboard components in `components/`)
+- **Crypto scanner:** Python (`pqc-service/main.py`)
+
+## Running locally
+```bash
+# 1. Front end
+cp .env.local.example .env.local   # add your LLM API key
+npm install
+npm run dev                        # http://localhost:3000
+
+# 2. PQC scanner
+cd pqc-service
+pip install -r requirements.txt
+python main.py
+```
